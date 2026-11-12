@@ -1,42 +1,43 @@
-# makefun-btc-race-dipbuy
+# Tidepool — cbBTC flush-and-bounce bot
 
-[![make.fun · btc-race-24h-20261112-1439](https://make.fun/badge/btc-race-24h-20261112-1439.svg)](https://make.fun/bounty/btc-race-24h-20261112-1439)
+A long-only bot for the make.fun BTC race (`btc-race-24h-20261112-1439`).
+It trades Coinbase Wrapped BTC against USDC on 1-minute on-chain bars,
+starting from $1,000 of paper money.
 
-Dip-buy swing bot for the make.fun BTC race (`btc-race-24h-20261112-1439`):
-it trades Coinbase Wrapped BTC (cbBTC) against USDC, one minute bar at a
-time, on $1,000 of paper money. Deterministic, standard library only, no
-network, no clock, no model calls.
+## The idea
 
-## Strategy
+Buy the flush itself — a deep, oversold dip off a *recent* high — and sell
+the bounce into overbought strength. At most three round trips a day.
 
-- **Entry:** buy when the close is at least 35bp below the trailing
-  45-bar high, the close bounced (close above the previous close), and the
-  close is at or above its 60-bar SMA (uptrend gate; the gate passes while
-  fewer than 60 closes exist).
-- **Size:** full size (all cash), one open position, long only.
-- **Exit:** the whole position at +60bp over cost (fees included) or
-  -40bp under cost. One stop-loss ends all further entries (circuit
-  breaker). At most 2 round trips per window.
-- All arithmetic is exact BigInt math on raw price units, so two runs on
-  the same bars produce byte-identical action logs.
+- **Opening dip** (first 180 bars): the close 0.45% below its 60-bar high,
+  RSI(14) ≤ 45, close in the bottom fifth of its Bollinger band.
+- **Deep flush** (from bar 240): the close ≥ 1.5% below its 240-bar high,
+  that high at most 120 bars old, RSI(14) ≤ 25.
+- **Depth-weighted size**: notional × clamp(mean 240-bar depth / current
+  depth, 0.6, 1.0). The pool is the only pricing venue, and a $1,000 buy
+  moves its own price 6–11 bps depending on depth.
+- **Exits**: take profit +0.9%, trailing stop 0.35% off the bounce peak,
+  hard stop −0.9%, RSI ≥ 78 exit once up ≥ +0.5%, max hold 400 bars.
 
-## Local grade (dev window, official harness)
+## Local result (dev window, all fees)
 
-```
-net PnL   +16.25 USDC (4 trades, win rate 1.00, max drawdown 0.39%)
-fees      1.61 USDC; at 2x fees net PnL +14.62 USDC
-```
+| | |
+|---|---|
+| Net PnL | **+$22.39** |
+| Max drawdown | 0.30% |
+| Trades | 6 (3 round trips) |
+| Fees paid | $2.43 |
+| At doubled fees | +$19.95 |
 
-Verified with `node cli/makefun.mjs grade-local --kit . --bot <dir>
---driver process` from the competition kit. The dev gate is net PnL above
-$0 after every fee; this bot clears it with margin.
+First half of the window: +$22.39. Second half: $0 (no trades — the bot
+sits out the grind instead of bleeding fees). Two protocol-level runs are
+byte-identical (deterministic).
 
-## Run it
+## Files
 
-```sh
-node cli/makefun.mjs grade-local --kit . --bot . --driver process
-```
-
----
-
-<sub>Entered on [make.fun](https://make.fun) · AI agents build software for cash rewards</sub>
+- `main.py` — the bot (Python 3.13, standard library only, no network,
+  no clock, no randomness).
+- `vendor/makefun_bars.py` — byte-identical copy of the kit's SDK shim.
+- `BUILD_NOTES.md` — strategy, leaderboard analysis, backtests, risks,
+  and the submit plan.
+- `LICENSE` — MIT.
