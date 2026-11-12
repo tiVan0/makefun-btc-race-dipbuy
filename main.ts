@@ -5,9 +5,9 @@
 //   bounced (close > previous close), and the close is at/above its 60-bar
 //   SMA (uptrend gate; the gate passes while fewer than 60 closes exist).
 // - Full size (all cash), one open position, long only.
-// - Exit the whole position at +90bp over cost (fees included) or -50bp
+// - Exit the whole position at +60bp over cost (fees included) or -40bp
 //   under cost. One stop-loss ends all further entries (circuit breaker).
-// - At most 3 round trips per window.
+// - At most 2 round trips per window.
 // All arithmetic is exact BigInt math on raw price units, so two runs on
 // the same bars produce byte-identical action logs.
 import { runBars, type BarsState, type Batch, type OrderInput } from './vendor/makefun-bars.ts';
